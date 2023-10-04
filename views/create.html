@@ -1,0 +1,215 @@
+<!-- views/create.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Booking</title>
+    <!-- <style>
+        h1{
+            text-align: center;
+            color: blue;
+           
+        }
+        .form{
+            color: red;
+            text-align: center;
+            
+        }
+
+    </style> -->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            
+            
+        }
+    
+        h1 {
+            text-align: center;
+            color: #0073e6;
+            margin-top: 20px;
+        }
+    
+        .form {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+    
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+    
+        button[type="submit"] {
+            background-color: #0073e6;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+    
+        button[type="submit"]:hover {
+            background-color: #005bbf;
+        }
+    
+        h2 {
+            text-align: center;
+            color: #0073e6;
+            margin-top: 20px;
+        }
+    
+        ul#bookingList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+    
+        ul#bookingList li {
+            background-color: #ffffff;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+        justify-content: center;
+        align-items: center;
+        }
+    
+        ul#bookingList button {
+            background-color: #e60000;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-left: 5px;
+            border-radius: 3px;
+        }
+    
+        ul#bookingList button:hover {
+            background-color: #cc0000;
+        }
+    </style>
+    
+</head>
+<body>
+    <h1>Create Booking</h1>
+    <div class="form">
+    <form id="createBookingForm">
+        <label for="userName">User Name:</label>
+        <input type="text" id="userName" name="userName" required><br>
+        <label for="phone">Phone:</label>
+        <input type="text" id="phone" name="phone" required><br>
+        <label for="email">Email:</label>
+        <input type="text" id="email" name="email" required><br>
+        <button type="submit">Create</button>
+    </form>
+</div>
+
+    <h2>bookings</h2>
+    <ul id="bookingList"></ul>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const createBookingForm = document.getElementById('createBookingForm');
+        const bookingList = document.getElementById('bookingList');
+        let editBookingId = null;
+
+        createBookingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(createBookingForm);
+            try {
+                if (editBookingId) {
+                    // Editing an existing booking
+                    await axios.put(`/api/bookings/${editBookingId}`, Object.fromEntries(formData));
+                    console.log(`booking with ID ${editBookingId} updated`);
+                } else {
+                    // Creating a new booking
+                    const response = await axios.post('/api/bookings', Object.fromEntries(formData));
+                    console.log('booking created:', response.data);
+                }
+                // Clear form inputs
+                createBookingForm.reset();
+                // Reset edit mode
+                editBookingId = null;
+                // Refresh the booking list after creation or update
+                refreshbookingList();
+            } catch (error) {
+                console.error('Error creating/updating booking:', error);
+                // Handle error and display an error message
+            }
+        });
+
+        async function refreshbookingList() {
+            try {
+                const response = await axios.get('/api/bookings');
+                const bookings = response.data;
+
+                // Clear the previous list
+                bookingList.innerHTML = '';
+
+                // Populate the list with booking data
+                bookings.forEach((booking, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `${index + 1} - ${booking.userName} ${booking.phone} ${booking.email}
+                        <button onclick="editBooking('${booking.email}')">Edit</button>
+                        <button onclick="deleteBooking('${booking.email}')">Delete</button>`;
+                    bookingList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error fetching booking list:', error);
+            }
+        }
+
+        async function deleteBooking(bookingId) {
+            try {
+                await axios.delete(`/api/bookings/${bookingId}`);
+                console.log(`booking with ID ${bookingId} deleted`);
+                // Refresh the booking list after deletion
+                refreshbookingList();
+            } catch (error) {
+                console.error(`Error deleting booking with ID ${bookingId}:`, error);
+            }
+        }
+
+        async function editBooking(bookingId) {
+            try {
+                const response = await axios.get(`/api/bookings/${bookingId}`);
+                const booking = response.data;
+
+                // Populate the form with booking data for editing
+                document.getElementById('userName').value = booking.userName;
+                document.getElementById('phone').value = booking.phone;
+                document.getElementById('email').value = booking.email;
+
+                // Update the editBookingId to indicate edit mode
+                editBookingId = bookingId;
+            } catch (error) {
+                console.error(`Error fetching booking with ID ${bookingId} for editing:`, error);
+            }
+        }
+
+        // Initial booking list load
+        refreshbookingList();
+    </script>
+</body>
+</html>
